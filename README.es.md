@@ -1,5 +1,7 @@
 <!-- hide -->
+
 # RNA para clasificación de imágenes - Guía paso a paso
+
 <!-- endhide -->
 
 - Comprender un dataset nuevo.
@@ -41,43 +43,29 @@ Esta variedad de tamaños y formatos debe solucionarse antes de entrenar el mode
 Como podrás ver, son una gran cantidad de imágenes, asegúrate de seguir las siguientes normas:
 
 1. **Si tienes más de 12 gigabytes de RAM**, usa la API de procesamiento de imágenes de Keras para cargar las 25.000 fotos en el conjunto de datos de entrenamiento y remodelarlas a fotos cuadradas de 200×200 píxeles. La etiqueta también debe determinarse para cada foto en función de los nombres de archivo. Se debe guardar una tupla de fotos y etiquetas.
-2. **Si no tienes más de 12 gigabytes de RAM**, carga las imágenes progresivamente usando la clase Keras `ImageDataGenerator` y la función `flow_from_directory()`. Esto será más lento de ejecutar, pero se ejecutará en hardware de menor capacidad. Esta función prefiere que los datos se dividan en directorios *train* y *test* separados, y debajo de cada directorio para tener un subdirectorio para cada clase.
+2. **Si no tienes más de 12 gigabytes de RAM**, carga las imágenes progresivamente usando la clase Keras `ImageDataGenerator` y la función `flow_from_directory()`. Esto será más lento de ejecutar, pero se ejecutará en hardware de menor capacidad. Esta función prefiere que los datos se dividan en directorios _train_ y _test_ separados, y debajo de cada directorio para tener un subdirectorio para cada clase.
 
 Una vez tengas todas las imágenes procesadas, crea un objeto `ImageDataGenerator` para datos de entrenamiento y prueba. Luego pasa la carpeta que tiene datos de entrenamiento al objeto `trdata` y, de manera similar, pasa la carpeta que tiene datos de prueba al objeto `tsdata`. De esta forma, se etiquetarán las imágenes automáticamente y estará todo listo para entrar a la red.
 
 #### Paso 3: Construye una RNA
 
-Cualquier clasificador que se ajuste a este problema tendrá que ser robusto porque algunas imágenes muestran al gato o al perro en una esquina o tal vez a 2 gatos o perros en la misma foto. Si has podido investigar algunas de las implementaciones de los ganadores de otras competiciones también relacionadas con imágenes, verás que `VGG16` es una arquitectura de CNN utilizada para ganar la competencia de Kaggle ILSVR (Imagenet) en 2014. Se considera una de las arquitecturas de modelos de visión con mejores resultados hasta la fecha.
+Cualquier clasificador que se ajuste a este problema tendrá que ser robusto porque algunas imágenes muestran al gato o al perro en una esquina o tal vez a 2 gatos o perros en la misma foto. Si has podido investigar algunas de las implementaciones de los ganadores de otras competiciones también relacionadas con imágenes, verás que `EfficientNet-B0` es una arquitectura de CNN presentada por Google en 2019. Usa un escalado compuesto de profundidad, anchura y resolución para alcanzar una gran precisión en ImageNet con muchos menos parámetros que modelos anteriores, y sigue siendo una base sólida y eficiente para tareas de visión.
 
 Utiliza la siguiente arquitectura de prueba:
 
 ```py
+from keras.applications import EfficientNetB0
+from keras.models import Sequential
+from keras.layers import Dense, GlobalAveragePooling2D
+
 model = Sequential()
-model.add(Conv2D(input_shape = (224,224,3), filters = 64, kernel_size = (3,3), padding = "same", activation = "relu"))
-model.add(Conv2D(filters = 64,kernel_size = (3,3),padding = "same", activation = "relu"))
-model.add(MaxPool2D(pool_size = (2,2),strides = (2,2)))
-model.add(Conv2D(filters = 128, kernel_size = (3,3), padding = "same", activation = "relu"))
-model.add(Conv2D(filters = 128, kernel_size = (3,3), padding = "same", activation = "relu"))
-model.add(MaxPool2D(pool_size = (2,2),strides = (2,2)))
-model.add(Conv2D(filters = 256, kernel_size = (3,3), padding = "same", activation = "relu"))
-model.add(Conv2D(filters = 256, kernel_size = (3,3), padding = "same", activation = "relu"))
-model.add(Conv2D(filters = 256, kernel_size = (3,3), padding = "same", activation = "relu"))
-model.add(MaxPool2D(pool_size = (2,2),strides = (2,2)))
-model.add(Conv2D(filters = 512, kernel_size = (3,3), padding = "same", activation = "relu"))
-model.add(Conv2D(filters = 512, kernel_size = (3,3), padding = "same", activation = "relu"))
-model.add(Conv2D(filters = 512, kernel_size = (3,3), padding = "same", activation = "relu"))
-model.add(MaxPool2D(pool_size = (2,2),strides = (2,2)))
-model.add(Conv2D(filters = 512, kernel_size = (3,3), padding = "same", activation = "relu"))
-model.add(Conv2D(filters = 512, kernel_size = (3,3), padding = "same", activation = "relu"))
-model.add(Conv2D(filters = 512, kernel_size = (3,3), padding = "same", activation = "relu"))
-model.add(MaxPool2D(pool_size = (2,2),strides = (2,2)))
-model.add(Flatten())
-model.add(Dense(units = 4096,activation = "relu"))
-model.add(Dense(units = 4096,activation = "relu"))
+model.add(EfficientNetB0(include_top = False, weights = None, input_shape = (224, 224, 3)))
+model.add(GlobalAveragePooling2D())
+model.add(Dense(units = 128, activation = "relu"))
 model.add(Dense(units = 2, activation = "softmax"))
 ```
 
-El código anterior aplica convoluciones a los datos (capas `Conv2D` y `MaxPool2D`) y después aplica capas densas (capas `Dense`) para el procesamiento de los valores numéricos obtenidos tras las convoluciones.
+El código anterior carga la backbone convolucional de `EfficientNet-B0`, reduce sus mapas de características con `GlobalAveragePooling2D` y después aplica capas densas (capas `Dense`) para la clasificación final de perro/gato.
 
 A continuación añade los elementos restantes para conformar el modelo, entrénalo y mide su rendimiento.
 
@@ -91,4 +79,4 @@ Carga el mejor modelo de los anteriores y utiliza el conjunto de test para hacer
 
 Almacena el modelo en la carpeta correspondiente.
 
-> Nota: También incorporamos muestras de solución en [este link](https://github.com/4GeeksAcademy/image-classifier-project-tutorial/blob/main/solution.es.ipynb)  que te sugerimos honestamente que solo uses si estás atascado por más de 30 minutos o si ya has terminado y quieres compararlo con tu enfoque.
+> Nota: También incorporamos muestras de solución en [este link](https://github.com/4GeeksAcademy/image-classifier-project-tutorial/blob/main/solution.es.ipynb) que te sugerimos honestamente que solo uses si estás atascado por más de 30 minutos o si ya has terminado y quieres compararlo con tu enfoque.
